@@ -5,6 +5,25 @@
     <h2>STEP 1 — DEFINE TARGET VOICE</h2>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
+    {% if voices %}
+    <div class="panel-block">
+        <h3>EXISTING VOICES</h3>
+        <ul class="entry-list">
+            {% for voice in voices %}
+            <li class="entry-row">
+                <span class="entry-name">{{ voice.name }}</span>
+                <span class="entry-meta">{{ voice.source_route.value }} — {{ voice.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                <a href="/step2/?voice_name={{ voice.name }}">USE</a>
+                <form method="post" action="/step1/delete" class="inline-form" data-confirm="Delete voice '{{ voice.name }}' and all its trained models?">
+                    <input type="hidden" name="voice_name" value="{{ voice.name }}">
+                    <button type="submit" class="danger">DELETE</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
     <div class="split">
         <form class="panel-block" method="post" action="/step1/upload" enctype="multipart/form-data">
             <h3>ROUTE A — UPLOAD REFERENCE</h3>

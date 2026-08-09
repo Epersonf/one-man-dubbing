@@ -5,7 +5,29 @@
     <h2>STEP 2 — TRAIN VOICE MODEL</h2>
     <p>Target voice: <strong>{{ voice_name }}</strong></p>
 
+    {% if models %}
+    <div class="panel-block">
+        <h3>EXISTING MODELS</h3>
+        <ul class="entry-list">
+            {% for model in models %}
+            <li class="entry-row">
+                <span class="entry-name">{{ model.model_id }}</span>
+                <span class="entry-meta">{{ model.engine_name }} — {{ model.epochs }} epochs — {{ model.created_at.strftime("%Y-%m-%d %H:%M") }}{% if model.has_similarity_index %} — indexed{% endif %}</span>
+                <a href="/step3/?voice_name={{ voice_name }}">USE</a>
+                <form method="post" action="/step2/delete-model" class="inline-form" data-confirm="Delete model '{{ model.model_id }}'?">
+                    <input type="hidden" name="voice_name" value="{{ voice_name }}">
+                    <input type="hidden" name="model_id" value="{{ model.model_id }}">
+                    <input type="hidden" name="engine_name" value="{{ model.engine_name }}">
+                    <button type="submit" class="danger">DELETE</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
     <form class="panel-block" id="train-form" data-voice-name="{{ voice_name }}">
+        <h3>TRAIN A NEW MODEL</h3>
         <label>Engine
             <select name="engine_name">
                 {% for engine in engines %}<option value="{{ engine }}">{{ engine }}</option>{% endfor %}

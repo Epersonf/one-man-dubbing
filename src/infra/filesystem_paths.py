@@ -45,21 +45,33 @@ def reference_path_for(voice_name: str) -> Path:
     return REFERENCES_DIR / f"{voice_name}.wav"
 
 
+def voice_metadata_path_for(voice_name: str) -> Path:
+    return REFERENCES_DIR / f"{voice_name}.json"
+
+
 def model_dir_for(voice_name: str) -> Path:
+    """Per-voice directory holding metadata (and staged actor uploads) for
+    every model trained on top of that voice - not the trained model
+    binaries themselves, which are engine-specific (see rvc_*_path_for)."""
     return MODELS_DIR / voice_name
+
+
+def model_metadata_path_for(voice_name: str, model_id: str) -> Path:
+    return model_dir_for(voice_name) / f"{model_id}.json"
 
 
 def output_path_for(voice_name: str, job_id: str, extension: str = "mp3") -> Path:
     return OUTPUTS_DIR / voice_name / f"{job_id}.{extension}"
 
 
-def rvc_experiment_dir_for(voice_name: str) -> Path:
+def rvc_experiment_dir_for(model_id: str) -> Path:
     """RVC's own working directory for one training run (preprocessed
-    audio, extracted features, checkpoints)."""
-    return RVC_LOGS_DIR / voice_name
+    audio, extracted features, checkpoints), keyed by model_id since a
+    voice can have several trained models."""
+    return RVC_LOGS_DIR / model_id
 
 
-def rvc_trained_model_path_for(voice_name: str) -> Path:
+def rvc_trained_model_path_for(model_id: str) -> Path:
     """Where RVC writes the final inference-ready model (see
     train/process_ckpt.py's savee(), called from train/train.py)."""
-    return RVC_TRAINED_WEIGHTS_DIR / f"{voice_name}.pth"
+    return RVC_TRAINED_WEIGHTS_DIR / f"{model_id}.pth"

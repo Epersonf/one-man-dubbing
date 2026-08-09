@@ -6,8 +6,16 @@
     <p>Target voice: <strong>{{ voice_name }}</strong></p>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
+    {% if models %}
     <form class="panel-block" method="post" action="/step3/dub" enctype="multipart/form-data">
         <input type="hidden" name="voice_name" value="{{ voice_name }}">
+        <label>Trained model
+            <select name="model_id">
+                {% for model in models %}
+                <option value="{{ model.model_id }}">{{ model.model_id }} ({{ model.epochs }} epochs, {{ model.created_at.strftime("%Y-%m-%d %H:%M") }})</option>
+                {% endfor %}
+            </select>
+        </label>
         <label>Your recording (actor voice)<input type="file" name="actor_audio" accept="audio/*" required></label>
         <label>Output format
             <select name="output_format">
@@ -17,6 +25,12 @@
         </label>
         <button type="submit">GENERATE DUBBED AUDIO</button>
     </form>
+    {% else %}
+    <div class="panel-block">
+        <p>No trained models yet for this voice.</p>
+        <a href="/step2/?voice_name={{ voice_name }}">GO TRAIN ONE</a>
+    </div>
+    {% endif %}
 
     {% if output_path %}
     <div class="panel-block">

@@ -15,6 +15,7 @@ class DubbingService:
     def dub(
         self,
         voice_name: str,
+        model_id: str,
         actor_audio_bytes: bytes,
         job_id: str,
         engine_name: str = DEFAULT_CONVERSION_ENGINE,
@@ -25,7 +26,7 @@ class DubbingService:
         staged_path = model_dir_for(voice_name) / f"actor_input_{job_id}.wav"
         source_asset = save_uploaded_audio(actor_audio_bytes, staged_path)
 
-        trained_model_path = engine.trained_model_path_for(voice_name)
+        trained_model_path = engine.trained_model_path_for(model_id)
         converted_asset = engine.convert(source_asset, trained_model_path)
 
         final_path = output_path_for(voice_name, job_id, output_format)

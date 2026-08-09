@@ -18,8 +18,12 @@ class VoiceConversionEngine(Protocol):
         self,
         reference: AudioAsset,
         config: TrainingConfig,
+        model_id: str,
     ) -> TrainingJob:
-        """Start training; returns a trackable/asynchronous job."""
+        """Start training a new model, identified by the caller-supplied
+        model_id (a voice can have several trained models). Returns a
+        trackable/asynchronous job whose job_id equals model_id.
+        """
         ...
 
     def convert(
@@ -34,11 +38,18 @@ class VoiceConversionEngine(Protocol):
         """True if weights/dependencies are already installed."""
         ...
 
-    def trained_model_path_for(self, voice_name: str) -> Path:
-        """Where this engine writes/looks up a voice's trained model.
+    def trained_model_path_for(self, model_id: str) -> Path:
+        """Where this engine writes/looks up one trained model's file.
 
         Each engine has its own on-disk layout for trained models (e.g. RVC
         writes into its own vendored repo), so callers ask the engine
         instead of assuming a shared convention.
+        """
+        ...
+
+    def delete_trained_model(self, model_id: str) -> None:
+        """Remove every engine-side artifact for one trained model
+        (weights, training logs, similarity index). Safe to call even if
+        some of those artifacts are already missing.
         """
         ...

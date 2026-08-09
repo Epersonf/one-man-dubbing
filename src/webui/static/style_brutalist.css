@@ -98,6 +98,50 @@ label.checkbox {
     align-items: center;
 }
 
+.entry-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.entry-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 2px solid var(--color-black);
+    padding: 0.6rem 0.9rem;
+    flex-wrap: wrap;
+}
+
+.entry-name {
+    font-weight: bold;
+}
+
+.entry-meta {
+    flex: 1;
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+.inline-form {
+    display: inline;
+}
+
+button.danger {
+    background: var(--color-white);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    padding: 0.4rem 0.75rem;
+}
+
+button.danger:hover {
+    background: var(--color-accent);
+    color: var(--color-white);
+}
+
 input, select, textarea, button {
     font-family: inherit;
     font-size: 1rem;

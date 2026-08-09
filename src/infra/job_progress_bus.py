@@ -25,7 +25,7 @@ class JobProgressBus:
 
     def __init__(self) -> None:
         self._subscribers: dict[str, list[Queue]] = defaultdict(list)
-        self._latest_by_voice: dict[str, TrainingJob] = {}
+        self._latest_by_job_id: dict[str, TrainingJob] = {}
 
     def subscribe(self, job_id: str) -> Queue:
         queue: Queue = Queue()
@@ -37,16 +37,16 @@ class JobProgressBus:
             self._subscribers[job_id].remove(queue)
 
     def publish(self, job: TrainingJob) -> None:
-        self._latest_by_voice[job.voice_name] = job
+        self._latest_by_job_id[job.job_id] = job
         for queue in self._subscribers.get(job.job_id, []):
             queue.put(ProgressEvent(job_id=job.job_id, job_snapshot=job))
 
-    def latest_for_voice(self, voice_name: str) -> TrainingJob | None:
-        """Most recent job snapshot for a voice, keyed by name instead of
-        job_id, since callers that just started a background training run
-        (e.g. the webui) don't know the generated job_id yet.
+    def latest_for_job(self, job_id: str) -> TrainingJob | None:
+        """Most recent snapshot for one training run. job_id doubles as the
+        model_id (see TrainingService.new_model_id), and is known to the
+        caller as soon as training starts - not just once it completes.
         """
-        return self._latest_by_voice.get(voice_name)
+        return self._latest_by_job_id.get(job_id)
 
     def close(self, job_id: str) -> None:
         for queue in self._subscribers.get(job_id, []):

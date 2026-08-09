@@ -70,23 +70,23 @@ def run_extract_feature(exp_dir: Path, version: str = RVC_MODEL_VERSION) -> None
     )
 
 
-def run_build_index(voice_name: str, version: str = RVC_MODEL_VERSION) -> None:
+def run_build_index(model_id: str, version: str = RVC_MODEL_VERSION) -> None:
     indices_dir = RVC_ASSETS_DIR / "indices"
     indices_dir.mkdir(parents=True, exist_ok=True)
     _run_module(
         "train.train_index",
-        [voice_name, version, str(indices_dir), "4"],
+        [model_id, version, str(indices_dir), "4"],
         "index building",
     )
 
 
-def build_train_args(voice_name: str, config: TrainingConfig) -> list[str]:
+def build_train_args(model_id: str, config: TrainingConfig) -> list[str]:
     sr_label = sample_rate_label(config.sample_rate)
     pretrained_g = RVC_PRETRAINED_DIR / f"f0G{sr_label}.pth"
     pretrained_d = RVC_PRETRAINED_DIR / f"f0D{sr_label}.pth"
     return [
         sys.executable, "-m", "train.train",
-        "-e", voice_name,
+        "-e", model_id,
         "-sr", sr_label,
         "-f0", "1",
         "-bs", str(config.batch_size),

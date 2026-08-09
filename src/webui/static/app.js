@@ -1,11 +1,11 @@
-function watchTrainingProgress(voiceName) {
+function watchTrainingProgress(modelId) {
     const progressPanel = document.getElementById("progress-panel");
     const progressBar = document.getElementById("progress-bar");
     const progressText = document.getElementById("progress-text");
     const continueLink = document.getElementById("continue-link");
 
     progressPanel.hidden = false;
-    const source = new EventSource(`/step2/progress/${encodeURIComponent(voiceName)}`);
+    const source = new EventSource(`/step2/progress/${encodeURIComponent(modelId)}`);
 
     source.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -27,7 +27,7 @@ function watchTrainingProgress(voiceName) {
     };
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function setupTrainForm() {
     const trainForm = document.getElementById("train-form");
     if (!trainForm) {
         return;
@@ -40,7 +40,28 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.set("voice_name", voiceName);
         formData.set("use_similarity_index", trainForm.use_similarity_index.checked ? "true" : "false");
 
-        await fetch("/step2/train", { method: "POST", body: formData });
-        watchTrainingProgress(voiceName);
+        const response = await fetch("/step2/train", { method: "POST", body: formData });
+        const result = await response.json();
+        if (!response.ok) {
+            document.getElementById("progress-text").textContent = `FAILED: ${result.error || "could not start training"}`;
+            document.getElementById("progress-panel").hidden = false;
+            return;
+        }
+        watchTrainingProgress(result.model_id);
     });
+}
+
+function setupDeleteConfirmations() {
+    document.querySelectorAll("form.inline-form[data-confirm]").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+            if (!window.confirm(form.dataset.confirm)) {
+                event.preventDefault();
+            }
+        });
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    setupTrainForm();
+    setupDeleteConfirmations();
 });

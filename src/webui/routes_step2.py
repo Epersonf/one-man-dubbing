@@ -7,6 +7,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from config import DEFAULT_CONVERSION_ENGINE
+from core.domain.errors import TrainingInProgressError
 from core.domain.training_config import TrainingConfig
 from core.domain.training_job import TrainingStatus
 from core.services.reference_voice_service import ReferenceVoiceService
@@ -47,7 +48,10 @@ async def start_training(
     config = TrainingConfig(
         epochs=epochs, sample_rate=sample_rate, use_similarity_index=use_similarity_index
     )
-    model_id = _service.start_training_in_background(voice_profile, config, engine_name)
+    try:
+        model_id = _service.start_training_in_background(voice_profile, config, engine_name)
+    except TrainingInProgressError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=409)
     return {"status": "started", "voice_name": voice_name, "model_id": model_id}
 
 
@@ -70,6 +74,7 @@ async def stream_progress(model_id: str):
                     "progress_ratio": job.progress_ratio,
                     "error_message": job.error_message,
                     "model_id": job.job_id,
+                    "log_lines": job.recent_log_lines,
                 }
                 yield f"data: {json.dumps(payload)}\n\n"
                 if job.status in (TrainingStatus.COMPLETED, TrainingStatus.FAILED):

@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from config import DEFAULT_CONVERSION_ENGINE
+from core.domain.errors import TrainingInProgressError
 from core.domain.training_config import TrainingConfig
 from core.domain.training_job import TrainingJob, TrainingStatus
 from core.domain.trained_model import TrainedModelInfo
@@ -14,6 +15,11 @@ from infra.audio_io import load_audio_asset
 from infra.filesystem_paths import model_dir_for, model_metadata_path_for
 from infra.job_progress_bus import progress_bus
 from infra.metadata_store import delete_json, read_all_json, read_json, write_json
+
+# Module-level, not per-instance: training is GPU/CPU-exclusive, and
+# multiple TrainingService() instances exist (one per webui route module),
+# so the lock has to be shared by all of them to actually serialize runs.
+_training_lock = threading.Lock()
 
 
 class TrainingService:
@@ -47,7 +53,15 @@ class TrainingService:
         (including ones before the engine gets a chance to run, like a
         missing reference file) is published as a FAILED job instead of
         leaving the progress stream hanging with nothing to report.
+
+        Raises TrainingInProgressError instead of starting a second run if
+        one is already active - running two at once contends for the same
+        GPU and can make the whole machine unresponsive.
         """
+        if not _training_lock.acquire(blocking=False):
+            raise TrainingInProgressError(
+                "A training run is already in progress. Wait for it to finish first."
+            )
         model_id = new_model_id(voice_profile.name)
 
         def _run() -> None:
@@ -64,6 +78,8 @@ class TrainingService:
                 )
                 progress_bus.publish(failed_job)
                 progress_bus.close(failed_job.job_id)
+            finally:
+                _training_lock.release()
 
         threading.Thread(target=_run, daemon=True).start()
         return model_id

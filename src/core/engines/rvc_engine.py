@@ -93,10 +93,13 @@ class RvcEngine:
         rvc_trained_model_path_for(model_id).parent.mkdir(parents=True, exist_ok=True)
         layout = ExperimentLayout(exp_dir, RVC_FEATURE_DIM)
 
+        def on_line(line: str) -> None:
+            self._on_line(job, line)
+
         dataset_dir = stage_dataset(reference.path, exp_dir)
-        run_preprocess(dataset_dir, exp_dir, config.sample_rate)
-        run_extract_f0(exp_dir)
-        run_extract_feature(exp_dir)
+        run_preprocess(dataset_dir, exp_dir, config.sample_rate, on_line)
+        run_extract_f0(exp_dir, on_line)
+        run_extract_feature(exp_dir, on_line=on_line)
 
         write_filelist(layout, config.sample_rate, RVC_FEATURE_DIM)
         write_config(layout, config.sample_rate, RVC_MODEL_VERSION)
@@ -104,12 +107,12 @@ class RvcEngine:
         self._run_train_loop(job, config)
 
         if config.use_similarity_index:
-            run_build_index(model_id)
+            run_build_index(model_id, on_line=on_line)
 
     def _run_train_loop(self, job: TrainingJob, config: TrainingConfig) -> None:
         args = build_train_args(job.job_id, config)
         for line in stream_command(args, cwd=RVC_DIR):
-            self._apply_progress_line(job, line)
+            self._on_line(job, line)
 
     def convert(self, source_audio: AudioAsset, trained_model_path: Path) -> AudioAsset:
         model_id = trained_model_path.stem
@@ -123,8 +126,9 @@ class RvcEngine:
         for index_path in (RVC_ASSETS_DIR / "indices").glob(f"{model_id}_*"):
             index_path.unlink(missing_ok=True)
 
-    def _apply_progress_line(self, job: TrainingJob, line: str) -> None:
+    def _on_line(self, job: TrainingJob, line: str) -> None:
+        job.append_log_line(line)
         match = _EPOCH_PATTERN.search(line)
         if match:
             job.current_epoch = int(match.group(1))
-            progress_bus.publish(job)
+        progress_bus.publish(job)

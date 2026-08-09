@@ -36,13 +36,14 @@
         <label>Epochs<input type="number" name="epochs" value="200"></label>
         <label>Sample rate<input type="number" name="sample_rate" value="40000"></label>
         <label class="checkbox"><input type="checkbox" name="use_similarity_index" checked> Use similarity index</label>
-        <button type="submit">START TRAINING</button>
+        <button type="submit" id="train-submit">START TRAINING</button>
     </form>
 
     <div class="panel-block" id="progress-panel" hidden>
         <h3>PROGRESS</h3>
         <progress id="progress-bar" value="0" max="1"></progress>
         <p id="progress-text">Waiting...</p>
+        <pre id="progress-log" class="log-panel"></pre>
         <a id="continue-link" href="/step3/?voice_name={{ voice_name }}" hidden>CONTINUE TO STEP 3</a>
     </div>
 </section>

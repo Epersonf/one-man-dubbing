@@ -33,9 +33,18 @@ class TrainingJob:
     finished_at: datetime | None = None
     model_output_path: Path | None = None
     error_message: str | None = None
+    recent_log_lines: list[str] = field(default_factory=list)
+
+    _MAX_LOG_LINES = 20
 
     @property
     def progress_ratio(self) -> float:
         if self.total_epochs <= 0:
             return 0.0
         return min(self.current_epoch / self.total_epochs, 1.0)
+
+    def append_log_line(self, line: str) -> None:
+        if not line.strip():
+            return
+        self.recent_log_lines.append(line)
+        del self.recent_log_lines[: -self._MAX_LOG_LINES]

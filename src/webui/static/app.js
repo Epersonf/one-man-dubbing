@@ -1,30 +1,41 @@
-function watchTrainingProgress(modelId) {
+function watchTrainingProgress(modelId, submitButton) {
     const progressPanel = document.getElementById("progress-panel");
     const progressBar = document.getElementById("progress-bar");
     const progressText = document.getElementById("progress-text");
+    const progressLog = document.getElementById("progress-log");
     const continueLink = document.getElementById("continue-link");
 
     progressPanel.hidden = false;
     const source = new EventSource(`/step2/progress/${encodeURIComponent(modelId)}`);
 
+    const finish = () => {
+        source.close();
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = "START TRAINING";
+        }
+    };
+
     source.onmessage = (event) => {
         const data = JSON.parse(event.data);
         progressBar.value = data.progress_ratio;
         progressText.textContent = `${data.status.toUpperCase()} — epoch ${data.current_epoch}/${data.total_epochs}`;
+        if (data.log_lines && data.log_lines.length) {
+            progressLog.textContent = data.log_lines.join("\n");
+            progressLog.scrollTop = progressLog.scrollHeight;
+        }
 
         if (data.status === "completed") {
             continueLink.hidden = false;
-            source.close();
+            finish();
         }
         if (data.status === "failed") {
             progressText.textContent = `FAILED: ${data.error_message || "unknown error"}`;
-            source.close();
+            finish();
         }
     };
 
-    source.onerror = () => {
-        source.close();
-    };
+    source.onerror = finish;
 }
 
 function setupTrainForm() {
@@ -32,9 +43,16 @@ function setupTrainForm() {
     if (!trainForm) {
         return;
     }
+    const submitButton = document.getElementById("train-submit");
 
     trainForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (submitButton.disabled) {
+            return;
+        }
+        submitButton.disabled = true;
+        submitButton.textContent = "TRAINING...";
+
         const voiceName = trainForm.dataset.voiceName;
         const formData = new FormData(trainForm);
         formData.set("voice_name", voiceName);
@@ -45,9 +63,11 @@ function setupTrainForm() {
         if (!response.ok) {
             document.getElementById("progress-text").textContent = `FAILED: ${result.error || "could not start training"}`;
             document.getElementById("progress-panel").hidden = false;
+            submitButton.disabled = false;
+            submitButton.textContent = "START TRAINING";
             return;
         }
-        watchTrainingProgress(result.model_id);
+        watchTrainingProgress(result.model_id, submitButton);
     });
 }
 

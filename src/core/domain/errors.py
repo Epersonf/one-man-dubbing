@@ -22,6 +22,13 @@ class TrainingFailedError(OneManDubbingError):
     """Raised when a training run fails (e.g. GPU out of memory, bad data)."""
 
 
+class TrainingInProgressError(OneManDubbingError):
+    """Raised when a new training run is requested while one is already
+    active. Training is GPU/CPU-exclusive - running two at once starves
+    both and can make the whole machine unresponsive.
+    """
+
+
 class ConversionFailedError(OneManDubbingError):
     """Raised when voice conversion / inference fails."""
 

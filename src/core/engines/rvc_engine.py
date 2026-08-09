@@ -23,7 +23,7 @@ class RvcEngine:
     engine_name = "rvc"
 
     def is_ready(self) -> bool:
-        hubert_weights = WEIGHTS_DIR / "hubert_base.pt"
+        hubert_weights = WEIGHTS_DIR / "rvc" / "hubert_base.pt"
         return RVC_DIR.is_dir() and hubert_weights.is_file()
 
     def train(self, reference: AudioAsset, config: TrainingConfig) -> TrainingJob:

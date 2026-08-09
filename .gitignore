@@ -1,3 +1,9 @@
+# OneManDubbing runtime state — never source, always regenerable by the
+# installer or by using the app. See README.md "Project layout".
+/vendor/
+/weights/
+/data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

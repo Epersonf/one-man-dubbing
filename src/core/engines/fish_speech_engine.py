@@ -1,22 +1,29 @@
 from __future__ import annotations
 
+import sys
 import uuid
 
 from core.domain.audio_asset import AudioAsset
 from core.domain.errors import SynthesisFailedError
 from core.domain.voice_profile import SynthesisParameters
 from infra.audio_io import load_audio_asset
-from infra.filesystem_paths import FISH_SPEECH_DIR, REFERENCES_DIR, WEIGHTS_DIR
+from infra.filesystem_paths import FISH_SPEECH_DIR, REFERENCES_DIR
 from infra.process_runner import ProcessRunError, run_command
 
 
 class FishSpeechEngine:
-    """VoiceSynthesisEngine implementation backed by the vendored Fish Speech repo."""
+    """VoiceSynthesisEngine implementation backed by the vendored Fish Speech repo.
+
+    Unlike RvcEngine, this integration is unverified against the real
+    fish-speech CLI (see README "Notes on the vendored engines") — the
+    script path and flags below are the intended integration point, not
+    confirmed against the actual upstream repo.
+    """
 
     engine_name = "fish_speech"
 
     def is_ready(self) -> bool:
-        checkpoint = WEIGHTS_DIR / "fish_speech" / "model.pth"
+        checkpoint = FISH_SPEECH_DIR / "weights" / "model.pth"
         return FISH_SPEECH_DIR.is_dir() and checkpoint.is_file()
 
     def synthesize(self, text_sample: str, parameters: SynthesisParameters) -> AudioAsset:
@@ -25,7 +32,7 @@ class FishSpeechEngine:
 
         synthesis_script = FISH_SPEECH_DIR / "tools" / "synthesize_cli.py"
         args = [
-            "python",
+            sys.executable,
             str(synthesis_script),
             "--text",
             text_sample,

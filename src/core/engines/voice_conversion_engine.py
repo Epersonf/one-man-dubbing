@@ -33,3 +33,12 @@ class VoiceConversionEngine(Protocol):
     def is_ready(self) -> bool:
         """True if weights/dependencies are already installed."""
         ...
+
+    def trained_model_path_for(self, voice_name: str) -> Path:
+        """Where this engine writes/looks up a voice's trained model.
+
+        Each engine has its own on-disk layout for trained models (e.g. RVC
+        writes into its own vendored repo), so callers ask the engine
+        instead of assuming a shared convention.
+        """
+        ...

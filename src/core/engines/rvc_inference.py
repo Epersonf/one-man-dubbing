@@ -1,39 +1,55 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from core.domain.errors import ConversionFailedError
-from infra.filesystem_paths import RVC_DIR
+from infra.filesystem_paths import RVC_ASSETS_DIR, RVC_DIR
 from infra.process_runner import ProcessRunError, run_command
 
 
+def _has_similarity_index(voice_name: str) -> bool:
+    indices_dir = RVC_ASSETS_DIR / "indices"
+    return indices_dir.is_dir() and any(indices_dir.glob(f"{voice_name}_*"))
+
+
 def run_inference(source_path: Path, model_path: Path, output_path: Path) -> Path:
-    """Invoke the vendored RVC inference CLI to convert one audio file.
+    """Invoke the vendored RVC inference CLI (infer/cli.py) to convert one
+    audio file.
 
     Kept separate from rvc_engine.py so that engine orchestration (job
     bookkeeping, progress reporting) and the raw subprocess call to the
     vendored RVC scripts don't live in the same 135-line file.
+
+    Run as "-m infer.cli" rather than by file path: cwd is RVC_DIR, and -m
+    puts that on sys.path[0], which is what lets cli.py's own top-level
+    imports (configs, i18n, tools) resolve.
     """
     if not model_path.exists():
         raise ConversionFailedError(f"Trained model not found: {model_path}")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    inference_script = RVC_DIR / "tools" / "infer_cli.py"
+    # Resolve to absolute paths: the subprocess runs with cwd=RVC_DIR, so a
+    # relative path here would be (mis)resolved against that instead of the
+    # caller's own working directory.
+    args = [
+        sys.executable,
+        "-m",
+        "infer.cli",
+        "--input",
+        str(source_path.resolve()),
+        "--model",
+        str(model_path.resolve()),
+        "--output",
+        str(output_path.resolve()),
+    ]
+    if not _has_similarity_index(model_path.stem):
+        # No index was built for this voice (use_similarity_index was off
+        # during training) - infer/cli.py otherwise refuses to run.
+        args += ["--index-rate", "0"]
 
     try:
-        run_command(
-            [
-                "python",
-                str(inference_script),
-                "--input",
-                str(source_path),
-                "--model",
-                str(model_path),
-                "--output",
-                str(output_path),
-            ],
-            cwd=RVC_DIR,
-        )
+        run_command(args, cwd=RVC_DIR)
     except ProcessRunError as exc:
         raise ConversionFailedError(f"RVC inference failed: {exc}") from exc
 

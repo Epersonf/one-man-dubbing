@@ -17,7 +17,17 @@ VENDOR_DIR: Path = REPO_ROOT / "vendor"
 RVC_DIR: Path = VENDOR_DIR / "rvc"
 FISH_SPEECH_DIR: Path = VENDOR_DIR / "fish_speech"
 
-WEIGHTS_DIR: Path = REPO_ROOT / "weights"
+# RVC hardcodes these paths relative to its own repo root (see
+# infer/cli.py and infer/hubert.py in the vendored repo), so downloaded
+# weights and per-voice training state live inside vendor/rvc/ itself
+# rather than in a generic top-level weights/ directory.
+RVC_ASSETS_DIR: Path = RVC_DIR / "assets"
+RVC_HUBERT_DIR: Path = RVC_ASSETS_DIR / "hubert_base"
+RVC_RMVPE_PATH: Path = RVC_ASSETS_DIR / "rmvpe" / "rmvpe.pt"
+RVC_PRETRAINED_DIR: Path = RVC_ASSETS_DIR / "pretrained_v2"
+RVC_TRAINED_WEIGHTS_DIR: Path = RVC_ASSETS_DIR / "weights"
+RVC_LOGS_DIR: Path = RVC_DIR / "logs"
+RVC_MUTE_DIR: Path = RVC_LOGS_DIR / "mute"
 
 
 def ensure_project_directories() -> None:
@@ -27,7 +37,6 @@ def ensure_project_directories() -> None:
         MODELS_DIR,
         OUTPUTS_DIR,
         VENDOR_DIR,
-        WEIGHTS_DIR,
     ):
         directory.mkdir(parents=True, exist_ok=True)
 
@@ -42,3 +51,15 @@ def model_dir_for(voice_name: str) -> Path:
 
 def output_path_for(voice_name: str, job_id: str, extension: str = "mp3") -> Path:
     return OUTPUTS_DIR / voice_name / f"{job_id}.{extension}"
+
+
+def rvc_experiment_dir_for(voice_name: str) -> Path:
+    """RVC's own working directory for one training run (preprocessed
+    audio, extracted features, checkpoints)."""
+    return RVC_LOGS_DIR / voice_name
+
+
+def rvc_trained_model_path_for(voice_name: str) -> Path:
+    """Where RVC writes the final inference-ready model (see
+    train/process_ckpt.py's savee(), called from train/train.py)."""
+    return RVC_TRAINED_WEIGHTS_DIR / f"{voice_name}.pth"

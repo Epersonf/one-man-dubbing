@@ -33,5 +33,18 @@ def download_file(repo_id: str, filename: str, destination_dir: Path) -> Path:
     return result_path
 
 
-def download_files(repo_id: str, filenames: list[str], destination_dir: Path) -> list[Path]:
-    return [download_file(repo_id, filename, destination_dir) for filename in filenames]
+def download_and_extract_zip(repo_id: str, filename: str, destination_dir: Path) -> None:
+    """Download a .zip asset and extract it into destination_dir, discarding
+    the archive. Used for bundled sample packs (e.g. RVC's mute.zip) that
+    aren't a single usable file on their own.
+    """
+    import zipfile
+
+    archive_path = download_file(repo_id, filename, destination_dir)
+    try:
+        with zipfile.ZipFile(archive_path) as archive:
+            archive.extractall(destination_dir)
+    except zipfile.BadZipFile as exc:
+        raise DownloadError(f"Downloaded archive is not a valid zip: {archive_path}") from exc
+    finally:
+        archive_path.unlink(missing_ok=True)

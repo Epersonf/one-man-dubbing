@@ -6,12 +6,12 @@ import webbrowser
 import uvicorn
 
 from config import WEBUI_HOST, WEBUI_PORT
-from infra.filesystem_paths import FISH_SPEECH_DIR, RVC_DIR, WEIGHTS_DIR
+from infra.filesystem_paths import RVC_HUBERT_DIR, RVC_MUTE_DIR
 from installer.run_installer import run_full_setup
 
 
 def _needs_first_run_setup() -> bool:
-    return not (RVC_DIR.is_dir() and FISH_SPEECH_DIR.is_dir() and WEIGHTS_DIR.is_dir())
+    return not (RVC_HUBERT_DIR.is_dir() and RVC_MUTE_DIR.is_dir())
 
 
 def _open_browser_when_ready() -> None:

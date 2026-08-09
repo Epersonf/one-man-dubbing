@@ -40,6 +40,7 @@ def install_torch(gpu_info: GpuInfo) -> None:
                 "-m",
                 "pip",
                 "install",
+                "--force-reinstall",
                 "torch",
                 "torchaudio",
                 "--index-url",

@@ -22,11 +22,14 @@ def run_full_setup() -> None:
     print("[2/6] Installing PyTorch...")
     install_torch(gpu_info)
 
-    print("[3/6] Installing project dependencies...")
-    install_dependencies()
-
-    print("[4/6] Installing engines (RVC, Fish Speech)...")
+    print("[3/6] Installing engines (RVC, Fish Speech)...")
     install_all_engines()
+
+    # Engines (e.g. RVC's own bundled Gradio UI) can pin older shared
+    # packages like fastapi/starlette. Installing our own requirements
+    # last makes sure OUR webui's versions win the shared environment.
+    print("[4/6] Installing project dependencies...")
+    install_dependencies()
 
     print("[5/6] Downloading base model weights...")
     download_all_weights()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
@@ -9,6 +10,15 @@ from core.domain.errors import OneManDubbingError
 
 class ProcessRunError(OneManDubbingError):
     """Raised when a subprocess exits with a non-zero status."""
+
+
+def _utf8_env(env: dict[str, str] | None) -> dict[str, str]:
+    # Without this, a child process that prints non-ASCII text (e.g. a
+    # vendored script's own CJK log messages) can crash outright on
+    # Windows, whose default console codepage isn't UTF-8.
+    merged = dict(os.environ if env is None else env)
+    merged["PYTHONUTF8"] = "1"
+    return merged
 
 
 def run_command(
@@ -26,9 +36,11 @@ def run_command(
     result = subprocess.run(
         list(args),
         cwd=str(cwd) if cwd else None,
-        env=env,
+        env=_utf8_env(env),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if result.returncode != 0:
@@ -53,10 +65,12 @@ def stream_command(
     process = subprocess.Popen(
         list(args),
         cwd=str(cwd) if cwd else None,
-        env=env,
+        env=_utf8_env(env),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
     )
     assert process.stdout is not None

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.registry.engine_registry import bootstrap_default_engines
@@ -15,6 +16,10 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="OneManDubbing")
     app.mount("/static", StaticFiles(directory=str(WEBUI_DIR / "static")), name="static")
+
+    @app.get("/")
+    async def root() -> RedirectResponse:
+        return RedirectResponse(url="/step1/")
 
     app.include_router(routes_step1.router)
     app.include_router(routes_step2.router)

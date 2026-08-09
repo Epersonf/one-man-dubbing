@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Step 2 — Training{% endblock %}
+{% block content %}
+<section class="panel">
+    <h2>STEP 2 — TRAIN VOICE MODEL</h2>
+    <p>Target voice: <strong>{{ voice_name }}</strong></p>
+
+    <form class="panel-block" id="train-form" data-voice-name="{{ voice_name }}">
+        <label>Engine
+            <select name="engine_name">
+                {% for engine in engines %}<option value="{{ engine }}">{{ engine }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Epochs<input type="number" name="epochs" value="200"></label>
+        <label>Sample rate<input type="number" name="sample_rate" value="40000"></label>
+        <label class="checkbox"><input type="checkbox" name="use_similarity_index" checked> Use similarity index</label>
+        <button type="submit">START TRAINING</button>
+    </form>
+
+    <div class="panel-block" id="progress-panel" hidden>
+        <h3>PROGRESS</h3>
+        <progress id="progress-bar" value="0" max="1"></progress>
+        <p id="progress-text">Waiting...</p>
+        <a id="continue-link" href="/step3/?voice_name={{ voice_name }}" hidden>CONTINUE TO STEP 3</a>
+    </div>
+</section>
+{% endblock %}

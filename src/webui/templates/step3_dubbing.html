@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Step 3 — Dubbing{% endblock %}
+{% block content %}
+<section class="panel">
+    <h2>STEP 3 — DUB YOUR TAKE</h2>
+    <p>Target voice: <strong>{{ voice_name }}</strong></p>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <form class="panel-block" method="post" action="/step3/dub" enctype="multipart/form-data">
+        <input type="hidden" name="voice_name" value="{{ voice_name }}">
+        <label>Your recording (actor voice)<input type="file" name="actor_audio" accept="audio/*" required></label>
+        <label>Output format
+            <select name="output_format">
+                <option value="mp3">mp3</option>
+                <option value="wav">wav</option>
+            </select>
+        </label>
+        <button type="submit">GENERATE DUBBED AUDIO</button>
+    </form>
+
+    {% if output_path %}
+    <div class="panel-block">
+        <h3>OUTPUT READY</h3>
+        <a href="/step3/download/{{ voice_name }}/{{ job_id }}">DOWNLOAD {{ output_path }}</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

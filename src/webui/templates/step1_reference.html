@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Step 1 — Reference Voice{% endblock %}
+{% block content %}
+<section class="panel">
+    <h2>STEP 1 — DEFINE TARGET VOICE</h2>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <div class="split">
+        <form class="panel-block" method="post" action="/step1/upload" enctype="multipart/form-data">
+            <h3>ROUTE A — UPLOAD REFERENCE</h3>
+            <label>Voice name<input type="text" name="voice_name" required></label>
+            <label>Reference audio<input type="file" name="audio_file" accept="audio/*" required></label>
+            <button type="submit">UPLOAD &amp; CONTINUE</button>
+        </form>
+
+        <form class="panel-block" method="post" action="/step1/synthesize">
+            <h3>ROUTE B — SYNTHESIZE FROM SCRATCH</h3>
+            <label>Voice name<input type="text" name="voice_name" required></label>
+            <label>Sample text<textarea name="text_sample" required></textarea></label>
+            <label>Engine
+                <select name="engine_name">
+                    {% for engine in engines %}<option value="{{ engine }}">{{ engine }}</option>{% endfor %}
+                </select>
+            </label>
+            <label>Pitch base<input type="number" step="0.1" name="pitch_base" value="0.0"></label>
+            <label>Speed<input type="number" step="0.1" name="speed" value="1.0"></label>
+            <label>Accent (optional)<input type="text" name="accent"></label>
+            <button type="submit">SYNTHESIZE &amp; CONTINUE</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

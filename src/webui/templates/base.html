@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OneManDubbing{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style_brutalist.css">
+</head>
+<body>
+    <header class="site-header">
+        <h1>ONEMANDUBBING</h1>
+        <nav class="step-nav">
+            <span class="step-tag">01 REFERENCE</span>
+            <span class="step-tag">02 TRAINING</span>
+            <span class="step-tag">03 DUBBING</span>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <script src="/static/app.js"></script>
+</body>
+</html>

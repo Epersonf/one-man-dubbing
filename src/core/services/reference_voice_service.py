@@ -53,10 +53,14 @@ class ReferenceVoiceService:
         return profile
 
     def list_voices(self) -> list[VoiceProfile]:
+        self._backfill_missing_metadata()
         return [_voice_profile_from_metadata(data) for data in read_all_json(REFERENCES_DIR)]
 
     def get_voice(self, voice_name: str) -> VoiceProfile | None:
         data = read_json(voice_metadata_path_for(voice_name))
+        if data is None and reference_path_for(voice_name).is_file():
+            self._backfill_metadata_for(voice_name)
+            data = read_json(voice_metadata_path_for(voice_name))
         return _voice_profile_from_metadata(data) if data else None
 
     def delete_voice(self, voice_name: str) -> None:
@@ -81,6 +85,26 @@ class ReferenceVoiceService:
                 "source_route": profile.source_route.value,
                 "created_at": profile.created_at.isoformat(),
             },
+        )
+
+    def _backfill_missing_metadata(self) -> None:
+        """Voices created before metadata sidecars existed (or dropped in
+        by hand) are still just a .wav file on disk - generate a metadata
+        sidecar for any of those so they show up like any other voice.
+        """
+        for wav_path in REFERENCES_DIR.glob("*.wav"):
+            if not voice_metadata_path_for(wav_path.stem).is_file():
+                self._backfill_metadata_for(wav_path.stem)
+
+    def _backfill_metadata_for(self, voice_name: str) -> None:
+        wav_path = reference_path_for(voice_name)
+        self._save_metadata(
+            VoiceProfile(
+                name=voice_name,
+                reference_audio_path=wav_path,
+                source_route=VoiceSourceRoute.UPLOAD,
+                created_at=datetime.fromtimestamp(wav_path.stat().st_mtime),
+            )
         )
 
 

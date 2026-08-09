@@ -9,10 +9,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from config import DEFAULT_CONVERSION_ENGINE
 from core.domain.training_config import TrainingConfig
 from core.domain.training_job import TrainingStatus
-from core.domain.voice_profile import VoiceProfile, VoiceSourceRoute
 from core.services.reference_voice_service import ReferenceVoiceService
 from core.services.training_service import TrainingService
-from infra.filesystem_paths import reference_path_for
 from infra.job_progress_bus import progress_bus
 from webui.template_engine import templates
 
@@ -43,12 +41,6 @@ async def start_training(
     use_similarity_index: bool = Form(True),
 ):
     voice_profile = _voice_service.get_voice(voice_name)
-    if voice_profile is None and reference_path_for(voice_name).is_file():
-        voice_profile = VoiceProfile(
-            name=voice_name,
-            reference_audio_path=reference_path_for(voice_name),
-            source_route=VoiceSourceRoute.UPLOAD,
-        )
     if voice_profile is None:
         return JSONResponse({"error": f"Voice not found: {voice_name}"}, status_code=404)
 

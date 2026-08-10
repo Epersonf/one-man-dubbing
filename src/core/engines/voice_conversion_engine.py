@@ -30,8 +30,13 @@ class VoiceConversionEngine(Protocol):
         self,
         source_audio: AudioAsset,
         trained_model_path: Path,
+        job_id: str,
     ) -> AudioAsset:
-        """Apply the trained model to the actor's audio."""
+        """Apply the trained model to the actor's audio, publishing
+        progress/log lines under job_id (see infra/job_progress_bus.py) as
+        it runs - conversion can take a while and callers want live
+        feedback, not just a result at the end.
+        """
         ...
 
     def is_ready(self) -> bool:

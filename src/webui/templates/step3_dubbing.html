@@ -3,12 +3,32 @@
 {% block content %}
 <section class="panel">
     <h2>STEP 3 — DUB YOUR TAKE</h2>
-    <p>Target voice: <strong>{{ voice_name }}</strong></p>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
+    {% if not voice_name %}
+    <div class="panel-block">
+        <h3>CHOOSE A VOICE</h3>
+        {% if voices %}
+        <form method="get" action="/step3/">
+            <label>Voice (only voices with trained models are listed)
+                <select name="voice_name">
+                    {% for voice in voices %}
+                    <option value="{{ voice.name }}">{{ voice.name }} ({{ voice.model_count }} model{{ "s" if voice.model_count != 1 else "" }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit">SELECT</button>
+        </form>
+        {% else %}
+        <p>No voice has a trained model yet.</p>
+        <a href="/step1/">GO CREATE A VOICE</a>
+        {% endif %}
+    </div>
+    {% else %}
+    <p>Target voice: <strong>{{ voice_name }}</strong> — <a href="/step3/">change voice</a></p>
+
     {% if models %}
-    <form class="panel-block" method="post" action="/step3/dub" enctype="multipart/form-data">
-        <input type="hidden" name="voice_name" value="{{ voice_name }}">
+    <form class="panel-block" id="dub-form" data-voice-name="{{ voice_name }}" enctype="multipart/form-data">
         <label>Trained model
             <select name="model_id">
                 {% for model in models %}
@@ -23,20 +43,21 @@
                 <option value="wav">wav</option>
             </select>
         </label>
-        <button type="submit">GENERATE DUBBED AUDIO</button>
+        <button type="submit" id="dub-submit">GENERATE DUBBED AUDIO</button>
     </form>
+
+    <div class="panel-block" id="dub-progress-panel" hidden>
+        <h3>PROGRESS</h3>
+        <p id="dub-progress-text">Waiting...</p>
+        <pre id="dub-progress-log" class="log-panel"></pre>
+        <a id="dub-download-link" href="#" hidden>DOWNLOAD RESULT</a>
+    </div>
     {% else %}
     <div class="panel-block">
         <p>No trained models yet for this voice.</p>
         <a href="/step2/?voice_name={{ voice_name }}">GO TRAIN ONE</a>
     </div>
     {% endif %}
-
-    {% if output_path %}
-    <div class="panel-block">
-        <h3>OUTPUT READY</h3>
-        <a href="/step3/download/{{ voice_name }}/{{ job_id }}">DOWNLOAD {{ output_path }}</a>
-    </div>
     {% endif %}
 </section>
 {% endblock %}

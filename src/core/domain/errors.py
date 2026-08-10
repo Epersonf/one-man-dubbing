@@ -33,6 +33,13 @@ class ConversionFailedError(OneManDubbingError):
     """Raised when voice conversion / inference fails."""
 
 
+class DubbingInProgressError(OneManDubbingError):
+    """Raised when a new dubbing run is requested while one is already
+    active, for the same reason as TrainingInProgressError: conversion is
+    GPU-exclusive too.
+    """
+
+
 class SynthesisFailedError(OneManDubbingError):
     """Raised when zero-shot voice synthesis fails."""
 

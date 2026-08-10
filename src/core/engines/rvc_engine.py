@@ -10,7 +10,7 @@ from core.domain.audio_asset import AudioAsset
 from core.domain.errors import TrainingFailedError
 from core.domain.training_config import TrainingConfig
 from core.domain.training_job import TrainingJob, TrainingStatus
-from core.engines.rvc_inference import run_inference
+from core.engines.rvc_inference import run_inference_with_progress
 from core.engines.rvc_layout import ExperimentLayout
 from core.engines.rvc_manifest_builder import write_config, write_filelist
 from core.engines.rvc_preprocessing import (
@@ -114,10 +114,10 @@ class RvcEngine:
         for line in stream_command(args, cwd=RVC_DIR):
             self._on_line(job, line)
 
-    def convert(self, source_audio: AudioAsset, trained_model_path: Path) -> AudioAsset:
+    def convert(self, source_audio: AudioAsset, trained_model_path: Path, job_id: str) -> AudioAsset:
         model_id = trained_model_path.stem
         output_path = trained_model_path.parent / f"{model_id}_{source_audio.path.stem}.wav"
-        result_path = run_inference(source_audio.path, trained_model_path, output_path)
+        result_path = run_inference_with_progress(source_audio.path, trained_model_path, output_path, job_id)
         return load_audio_asset(result_path)
 
     def delete_trained_model(self, model_id: str) -> None:

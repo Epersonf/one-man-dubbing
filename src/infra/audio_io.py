@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+from math import gcd
 from pathlib import Path
 
 from core.domain.audio_asset import AudioAsset
 from core.domain.errors import AudioValidationError
 
 SUPPORTED_EXTENSIONS = frozenset({".wav", ".mp3", ".flac", ".ogg"})
+
+# Formats whose encoders only accept specific sample rates. RVC's own
+# working rate (e.g. 40000 Hz) isn't MP3-legal, so audio produced at that
+# rate has to be resampled before MP3 encoding or libsndfile rejects it.
+_FORMAT_VALID_SAMPLE_RATES: dict[str, frozenset[int]] = {
+    "mp3": frozenset({8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000}),
+}
+_FALLBACK_SAMPLE_RATE = 44100
 
 
 def load_audio_asset(path: Path) -> AudioAsset:
@@ -53,8 +62,21 @@ def convert_to_format(source: AudioAsset, target_path: Path, target_format: str 
     target_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         data, samplerate = sf.read(str(source.path))
+        valid_rates = _FORMAT_VALID_SAMPLE_RATES.get(target_format.lower())
+        if valid_rates is not None and samplerate not in valid_rates:
+            data, samplerate = _resample(data, samplerate, _FALLBACK_SAMPLE_RATE)
         sf.write(str(target_path), data, samplerate, format=target_format.upper())
     except Exception as exc:
         raise AudioValidationError(f"Could not convert audio to {target_format}: {exc}") from exc
 
     return load_audio_asset(target_path)
+
+
+def _resample(data, source_rate: int, target_rate: int):
+    if source_rate == target_rate:
+        return data, source_rate
+    from scipy.signal import resample_poly
+
+    divisor = gcd(source_rate, target_rate)
+    resampled = resample_poly(data, target_rate // divisor, source_rate // divisor, axis=0)
+    return resampled, target_rate

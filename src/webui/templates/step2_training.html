@@ -3,7 +3,28 @@
 {% block content %}
 <section class="panel">
     <h2>STEP 2 — TRAIN VOICE MODEL</h2>
-    <p>Target voice: <strong>{{ voice_name }}</strong></p>
+
+    {% if not voice_name %}
+    <div class="panel-block">
+        <h3>CHOOSE A VOICE</h3>
+        {% if voices %}
+        <form method="get" action="/step2/">
+            <label>Voice
+                <select name="voice_name">
+                    {% for voice in voices %}
+                    <option value="{{ voice.name }}">{{ voice.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit">SELECT</button>
+        </form>
+        {% else %}
+        <p>No voices yet.</p>
+        <a href="/step1/">GO CREATE A VOICE</a>
+        {% endif %}
+    </div>
+    {% else %}
+    <p>Target voice: <strong>{{ voice_name }}</strong> — <a href="/step2/">change voice</a></p>
 
     {% if models %}
     <div class="panel-block">
@@ -46,5 +67,6 @@
         <pre id="progress-log" class="log-panel"></pre>
         <a id="continue-link" href="/step3/?voice_name={{ voice_name }}" hidden>CONTINUE TO STEP 3</a>
     </div>
+    {% endif %}
 </section>
 {% endblock %}

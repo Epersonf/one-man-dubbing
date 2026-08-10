@@ -10,9 +10,9 @@
     <header class="site-header">
         <h1>ONEMANDUBBING</h1>
         <nav class="step-nav">
-            <span class="step-tag">01 REFERENCE</span>
-            <span class="step-tag">02 TRAINING</span>
-            <span class="step-tag">03 DUBBING</span>
+            <a class="step-tag{% if request.url.path.startswith('/step1') %} active{% endif %}" href="/step1/">01 REFERENCE</a>
+            <a class="step-tag{% if request.url.path.startswith('/step2') %} active{% endif %}" href="/step2/{% if voice_name %}?voice_name={{ voice_name }}{% endif %}">02 TRAINING</a>
+            <a class="step-tag{% if request.url.path.startswith('/step3') %} active{% endif %}" href="/step3/{% if voice_name %}?voice_name={{ voice_name }}{% endif %}">03 DUBBING</a>
         </nav>
     </header>
     <main>

@@ -45,6 +45,20 @@ body {
     border: 2px solid var(--color-black);
     padding: 0.25rem 0.75rem;
     font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.step-tag:hover {
+    background: var(--color-black);
+    color: var(--color-white);
+}
+
+.step-tag.active {
+    background: var(--color-accent);
+    color: var(--color-white);
+    border-color: var(--color-accent);
 }
 
 main {

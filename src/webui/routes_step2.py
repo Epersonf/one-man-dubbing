@@ -21,14 +21,15 @@ _voice_service = ReferenceVoiceService()
 
 
 @router.get("/")
-async def show_step2(request: Request, voice_name: str):
+async def show_step2(request: Request, voice_name: str | None = None):
     return templates.TemplateResponse(
         request,
         "step2_training.html",
         {
+            "voices": _voice_service.list_voices(),
             "voice_name": voice_name,
             "engines": _service.list_available_engines(),
-            "models": _service.list_models(voice_name),
+            "models": _service.list_models(voice_name) if voice_name else [],
         },
     )
 

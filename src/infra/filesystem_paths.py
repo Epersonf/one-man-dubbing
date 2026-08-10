@@ -41,7 +41,17 @@ def ensure_project_directories() -> None:
         directory.mkdir(parents=True, exist_ok=True)
 
 
-def reference_path_for(voice_name: str) -> Path:
+def reference_dir_for(voice_name: str) -> Path:
+    """Folder holding every reference clip for a voice - a voice can be
+    trained from more than one clip, so this is a directory, not a file."""
+    return REFERENCES_DIR / voice_name
+
+
+def legacy_reference_path_for(voice_name: str) -> Path:
+    """Where a voice's single reference clip lived before multi-clip
+    support (data/references/<voice_name>.wav). Only used to detect and
+    migrate voices created before that change.
+    """
     return REFERENCES_DIR / f"{voice_name}.wav"
 
 

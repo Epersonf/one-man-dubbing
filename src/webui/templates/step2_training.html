@@ -33,8 +33,18 @@
             {% for model in models %}
             <li class="entry-row">
                 <span class="entry-name">{{ model.model_id }}</span>
-                <span class="entry-meta">{{ model.engine_name }} — {{ model.epochs }} epochs — {{ model.created_at.strftime("%Y-%m-%d %H:%M") }}{% if model.has_similarity_index %} — indexed{% endif %}</span>
+                <span class="entry-meta">
+                    {{ model.engine_name }} —
+                    {% if model.is_complete %}{{ model.epochs }} epochs{% else %}checkpoint at {{ model.epochs_completed }}/{{ model.epochs }} epochs{% endif %}
+                    — {{ model.created_at.strftime("%Y-%m-%d %H:%M") }}{% if model.has_similarity_index %} — indexed{% endif %}
+                </span>
                 <a href="/step3/?voice_name={{ voice_name }}">USE</a>
+                {% if not model.is_complete %}
+                <form method="post" action="#" class="inline-form resume-form" data-voice-name="{{ voice_name }}" data-model-id="{{ model.model_id }}">
+                    <input type="number" name="epochs" value="{{ model.epochs }}" min="{{ model.epochs_completed + 1 }}" class="resume-epochs" aria-label="Resume target epoch">
+                    <button type="submit">RESUME</button>
+                </form>
+                {% endif %}
                 <form method="post" action="/step2/delete-model" class="inline-form" data-confirm="Delete model '{{ model.model_id }}'?">
                     <input type="hidden" name="voice_name" value="{{ voice_name }}">
                     <input type="hidden" name="model_id" value="{{ model.model_id }}">
@@ -56,7 +66,10 @@
         </label>
         <label>Epochs<input type="number" name="epochs" value="200"></label>
         <label>Sample rate<input type="number" name="sample_rate" value="40000"></label>
+        <label>Save a checkpoint every N epochs<input type="number" name="save_every_epoch" value="25" min="1"></label>
         <label class="checkbox"><input type="checkbox" name="use_similarity_index" checked> Use similarity index</label>
+        <p class="hint">Checkpoints are usable models on their own - if training stops early, the
+            most recent checkpoint still shows up above and can be used or resumed.</p>
         <button type="submit" id="train-submit">START TRAINING</button>
     </form>
 

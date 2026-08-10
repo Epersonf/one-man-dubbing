@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Form, Request, UploadFile
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 
 from core.domain.errors import OneManDubbingError
@@ -19,20 +19,19 @@ async def show_step1(request: Request):
     return templates.TemplateResponse(
         request,
         "step1_reference.html",
-        {
-            "engines": _service.list_available_synthesis_engines(),
-            "voices": _service.list_voices(),
-        },
+        {"engines": _service.list_available_synthesis_engines(), "voices": _voices_with_clip_counts()},
     )
 
 
 @router.post("/upload")
 async def upload_reference(
-    request: Request, voice_name: str = Form(...), audio_file: UploadFile = ...
+    request: Request,
+    voice_name: str = Form(...),
+    audio_files: list[UploadFile] = File(...),
 ):
     try:
-        raw_bytes = await audio_file.read()
-        _service.create_from_upload(voice_name, raw_bytes)
+        files = [(f.filename or f"clip_{i}.wav", await f.read()) for i, f in enumerate(audio_files)]
+        _service.create_from_upload(voice_name, files)
     except OneManDubbingError as exc:
         return await _show_error(request, exc)
     return RedirectResponse(url=f"/step2/?voice_name={voice_name}", status_code=303)
@@ -71,7 +70,14 @@ async def _show_error(request: Request, exc: Exception):
         {
             "error": str(exc),
             "engines": _service.list_available_synthesis_engines(),
-            "voices": _service.list_voices(),
+            "voices": _voices_with_clip_counts(),
         },
         status_code=400,
     )
+
+
+def _voices_with_clip_counts() -> list[dict]:
+    return [
+        {"voice": voice, "clip_count": len(_service.list_reference_clips(voice.name))}
+        for voice in _service.list_voices()
+    ]

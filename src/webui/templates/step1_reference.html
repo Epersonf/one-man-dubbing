@@ -9,13 +9,13 @@
     <div class="panel-block">
         <h3>EXISTING VOICES</h3>
         <ul class="entry-list">
-            {% for voice in voices %}
+            {% for entry in voices %}
             <li class="entry-row">
-                <span class="entry-name">{{ voice.name }}</span>
-                <span class="entry-meta">{{ voice.source_route.value }} — {{ voice.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
-                <a href="/step2/?voice_name={{ voice.name }}">USE</a>
-                <form method="post" action="/step1/delete" class="inline-form" data-confirm="Delete voice '{{ voice.name }}' and all its trained models?">
-                    <input type="hidden" name="voice_name" value="{{ voice.name }}">
+                <span class="entry-name">{{ entry.voice.name }}</span>
+                <span class="entry-meta">{{ entry.voice.source_route.value }} — {{ entry.clip_count }} clip{{ "s" if entry.clip_count != 1 else "" }} — {{ entry.voice.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                <a href="/step2/?voice_name={{ entry.voice.name }}">USE</a>
+                <form method="post" action="/step1/delete" class="inline-form" data-confirm="Delete voice '{{ entry.voice.name }}' and all its trained models?">
+                    <input type="hidden" name="voice_name" value="{{ entry.voice.name }}">
                     <button type="submit" class="danger">DELETE</button>
                 </form>
             </li>
@@ -28,7 +28,7 @@
         <form class="panel-block" method="post" action="/step1/upload" enctype="multipart/form-data">
             <h3>ROUTE A — UPLOAD REFERENCE</h3>
             <label>Voice name<input type="text" name="voice_name" required></label>
-            <label>Reference audio<input type="file" name="audio_file" accept="audio/*" required></label>
+            <label>Reference audio (select one or more clips)<input type="file" name="audio_files" accept="audio/*" multiple required></label>
             <button type="submit">UPLOAD &amp; CONTINUE</button>
         </form>
 

@@ -8,8 +8,9 @@ from pathlib import Path
 from config import RVC_MODEL_VERSION
 from core.domain.errors import TrainingFailedError
 from core.domain.training_config import TrainingConfig
-from core.engines.rvc_layout import sample_rate_label
-from infra.filesystem_paths import RVC_ASSETS_DIR, RVC_DIR, RVC_PRETRAINED_DIR
+from core.engines.rvc_layout import ExperimentLayout
+from core.engines.rvc_manifest_builder import write_config, write_filelist
+from infra.filesystem_paths import RVC_ASSETS_DIR, RVC_DIR
 from infra.process_runner import ProcessRunError, stream_command
 
 _PREPROCESS_SEGMENT_SECONDS = 3.7
@@ -17,15 +18,18 @@ _GPU_INDEX = "0"
 OnLine = Callable[[str], None]
 
 
-def stage_dataset(reference_path: Path, exp_dir: Path) -> Path:
-    """Copy the single reference clip into its own dataset dir.
+def stage_dataset(reference_paths: list[Path], exp_dir: Path) -> Path:
+    """Copy every reference clip into its own dataset dir.
 
     preprocess.py slices every audio file found in the directory it's
     given, so that directory must contain only this training run's audio.
+    Clips are index-prefixed so same-named uploads (e.g. two "clip.wav"
+    from different folders) never collide.
     """
     dataset_dir = exp_dir / "_dataset"
     dataset_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(reference_path, dataset_dir / reference_path.name)
+    for index, path in enumerate(reference_paths):
+        shutil.copyfile(path, dataset_dir / f"{index:02d}_{path.name}")
     return dataset_dir
 
 
@@ -61,6 +65,27 @@ def run_preprocess(
     )
 
 
+def run_preprocessing_stages(
+    reference_paths: list[Path],
+    exp_dir: Path,
+    config: TrainingConfig,
+    feature_dim: int,
+    on_line: OnLine | None = None,
+) -> None:
+    """Runs stage_dataset + preprocess.py + F0/feature extraction, then
+    writes the training filelist/config - everything before the GAN
+    training loop. Skipped entirely when resuming a previous run (see
+    RvcEngine.train's resume flag): that data is already on disk.
+    """
+    layout = ExperimentLayout(exp_dir, feature_dim)
+    dataset_dir = stage_dataset(reference_paths, exp_dir)
+    run_preprocess(dataset_dir, exp_dir, config.sample_rate, on_line)
+    run_extract_f0(exp_dir, on_line)
+    run_extract_feature(exp_dir, on_line=on_line)
+    write_filelist(layout, config.sample_rate, feature_dim)
+    write_config(layout, config.sample_rate, RVC_MODEL_VERSION)
+
+
 def run_extract_f0(exp_dir: Path, on_line: OnLine | None = None) -> None:
     _run_module(
         "train.dataset.extract_f0",
@@ -92,25 +117,3 @@ def run_build_index(
         "index building",
         on_line,
     )
-
-
-def build_train_args(model_id: str, config: TrainingConfig) -> list[str]:
-    sr_label = sample_rate_label(config.sample_rate)
-    pretrained_g = RVC_PRETRAINED_DIR / f"f0G{sr_label}.pth"
-    pretrained_d = RVC_PRETRAINED_DIR / f"f0D{sr_label}.pth"
-    return [
-        sys.executable, "-m", "train.train",
-        "-e", model_id,
-        "-sr", sr_label,
-        "-f0", "1",
-        "-bs", str(config.batch_size),
-        "-g", "0",
-        "-te", str(config.epochs),
-        "-se", str(config.save_every_epoch),
-        "-pg", str(pretrained_g.relative_to(RVC_DIR)),
-        "-pd", str(pretrained_d.relative_to(RVC_DIR)),
-        "-l", "1",
-        "-c", "0",
-        "-sw", "1",
-        "-v", RVC_MODEL_VERSION,
-    ]

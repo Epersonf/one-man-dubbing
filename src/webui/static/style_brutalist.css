@@ -107,6 +107,17 @@ label {
     font-size: 0.85rem;
 }
 
+.hint {
+    font-size: 0.8rem;
+    opacity: 0.75;
+    margin: 0;
+}
+
+.resume-epochs {
+    width: 6rem;
+    display: inline-block;
+}
+
 label.checkbox {
     flex-direction: row;
     align-items: center;

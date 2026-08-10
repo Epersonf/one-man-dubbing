@@ -1,4 +1,4 @@
-function watchTrainingProgress(modelId, submitButton) {
+function watchTrainingProgress(modelId, submitButton, resetLabel) {
     const progressPanel = document.getElementById("progress-panel");
     const progressBar = document.getElementById("progress-bar");
     const progressText = document.getElementById("progress-text");
@@ -12,7 +12,7 @@ function watchTrainingProgress(modelId, submitButton) {
         source.close();
         if (submitButton) {
             submitButton.disabled = false;
-            submitButton.textContent = "START TRAINING";
+            submitButton.textContent = resetLabel || "START TRAINING";
         }
     };
 
@@ -68,6 +68,36 @@ function setupTrainForm() {
             return;
         }
         watchTrainingProgress(result.model_id, submitButton);
+    });
+}
+
+function setupResumeForms() {
+    document.querySelectorAll("form.resume-form").forEach((form) => {
+        const submitButton = form.querySelector("button[type=submit]");
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (submitButton.disabled) {
+                return;
+            }
+            const originalLabel = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = "RESUMING...";
+
+            const formData = new FormData(form);
+            formData.set("voice_name", form.dataset.voiceName);
+            formData.set("model_id", form.dataset.modelId);
+
+            const response = await fetch("/step2/resume", { method: "POST", body: formData });
+            const result = await response.json();
+            if (!response.ok) {
+                document.getElementById("progress-text").textContent = `FAILED: ${result.error || "could not resume training"}`;
+                document.getElementById("progress-panel").hidden = false;
+                submitButton.disabled = false;
+                submitButton.textContent = originalLabel;
+                return;
+            }
+            watchTrainingProgress(result.model_id, submitButton, originalLabel);
+        });
     });
 }
 
@@ -156,6 +186,7 @@ function setupDeleteConfirmations() {
 
 document.addEventListener("DOMContentLoaded", () => {
     setupTrainForm();
+    setupResumeForms();
     setupDubForm();
     setupDeleteConfirmations();
 });

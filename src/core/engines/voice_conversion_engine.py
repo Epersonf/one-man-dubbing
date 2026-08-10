@@ -9,20 +9,26 @@ from core.domain.training_job import TrainingJob
 
 
 class VoiceConversionEngine(Protocol):
-    """Contract for engines that train a timbre model from a reference
-    and then convert audio (e.g. RVC)."""
+    """Contract for engines that train a timbre model from one or more
+    reference clips and then convert audio (e.g. RVC)."""
 
     engine_name: str
 
     def train(
         self,
-        reference: AudioAsset,
+        voice_name: str,
+        reference_paths: list[Path],
         config: TrainingConfig,
         model_id: str,
+        resume: bool = False,
     ) -> TrainingJob:
         """Start training a new model, identified by the caller-supplied
         model_id (a voice can have several trained models). Returns a
         trackable/asynchronous job whose job_id equals model_id.
+
+        resume=True skips re-preprocessing reference_paths (assumed
+        already done for this model_id in an earlier run) and continues
+        training from the latest checkpoint toward config.epochs.
         """
         ...
 

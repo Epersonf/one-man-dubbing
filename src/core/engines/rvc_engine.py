@@ -5,22 +5,14 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from config import RVC_FEATURE_DIM, RVC_MODEL_VERSION
+from config import RVC_FEATURE_DIM
 from core.domain.audio_asset import AudioAsset
 from core.domain.errors import TrainingFailedError
 from core.domain.training_config import TrainingConfig
 from core.domain.training_job import TrainingJob, TrainingStatus
 from core.engines.rvc_inference import run_inference_with_progress
-from core.engines.rvc_layout import ExperimentLayout
-from core.engines.rvc_manifest_builder import write_config, write_filelist
-from core.engines.rvc_preprocessing import (
-    build_train_args,
-    run_build_index,
-    run_extract_f0,
-    run_extract_feature,
-    run_preprocess,
-    stage_dataset,
-)
+from core.engines.rvc_preprocessing import run_build_index, run_preprocessing_stages
+from core.engines.rvc_train_args import build_train_args
 from infra.audio_io import load_audio_asset
 from infra.filesystem_paths import (
     RVC_ASSETS_DIR,
@@ -40,10 +32,12 @@ class RvcEngine:
 
     Real RVC training is a 5-stage pipeline (preprocess -> F0 extraction ->
     HuBERT feature extraction -> GAN training -> similarity index), not a
-    single command; see rvc_preprocessing.py and rvc_manifest_builder.py
-    for the stages that run before the training loop itself. Each training
-    run is identified by a caller-supplied model_id, not the voice name,
-    since one voice can have several trained models.
+    single command; see rvc_preprocessing.py for the stages that run
+    before the training loop. Each training run is identified by a
+    caller-supplied model_id, not the voice name, since one voice can have
+    several trained models - and train.py itself auto-resumes from the
+    latest G_*/D_*.pth checkpoint in its log dir when one exists, which is
+    what resume=True relies on (see _run_pipeline).
     """
 
     engine_name = "rvc"
@@ -54,9 +48,16 @@ class RvcEngine:
     def trained_model_path_for(self, model_id: str) -> Path:
         return rvc_trained_model_path_for(model_id)
 
-    def train(self, reference: AudioAsset, config: TrainingConfig, model_id: str) -> TrainingJob:
+    def train(
+        self,
+        voice_name: str,
+        reference_paths: list[Path],
+        config: TrainingConfig,
+        model_id: str,
+        resume: bool = False,
+    ) -> TrainingJob:
         job = TrainingJob(
-            voice_name=reference.path.stem,
+            voice_name=voice_name,
             engine_name=self.engine_name,
             job_id=model_id,
             status=TrainingStatus.RUNNING,
@@ -66,7 +67,7 @@ class RvcEngine:
         progress_bus.publish(job)
 
         try:
-            self._run_pipeline(reference, config, job)
+            self._run_pipeline(reference_paths, config, job, resume)
         except (ProcessRunError, TrainingFailedError) as exc:
             job.status = TrainingStatus.FAILED
             job.error_message = str(exc)
@@ -83,7 +84,7 @@ class RvcEngine:
         return job
 
     def _run_pipeline(
-        self, reference: AudioAsset, config: TrainingConfig, job: TrainingJob
+        self, reference_paths: list[Path], config: TrainingConfig, job: TrainingJob, resume: bool
     ) -> None:
         model_id = job.job_id
         exp_dir = rvc_experiment_dir_for(model_id)
@@ -91,18 +92,12 @@ class RvcEngine:
         # train/process_ckpt.py's savee() writes here with a bare relative
         # path and doesn't create it itself - torch.save fails otherwise.
         rvc_trained_model_path_for(model_id).parent.mkdir(parents=True, exist_ok=True)
-        layout = ExperimentLayout(exp_dir, RVC_FEATURE_DIM)
 
         def on_line(line: str) -> None:
             self._on_line(job, line)
 
-        dataset_dir = stage_dataset(reference.path, exp_dir)
-        run_preprocess(dataset_dir, exp_dir, config.sample_rate, on_line)
-        run_extract_f0(exp_dir, on_line)
-        run_extract_feature(exp_dir, on_line=on_line)
-
-        write_filelist(layout, config.sample_rate, RVC_FEATURE_DIM)
-        write_config(layout, config.sample_rate, RVC_MODEL_VERSION)
+        if not resume:
+            run_preprocessing_stages(reference_paths, exp_dir, config, RVC_FEATURE_DIM, on_line)
 
         self._run_train_loop(job, config)
 

@@ -25,10 +25,15 @@ class SynthesisParameters:
 
 @dataclass(frozen=True)
 class VoiceProfile:
-    """Metadata describing a target voice, regardless of how it was created."""
+    """Metadata describing a target voice, regardless of how it was created.
+
+    A voice can be trained from more than one reference clip (e.g. several
+    short recordings of the same speaker), so reference_dir is a folder,
+    not a single file - see ReferenceVoiceService.list_reference_clips().
+    """
 
     name: str
-    reference_audio_path: Path
+    reference_dir: Path
     source_route: VoiceSourceRoute
     created_at: datetime = field(default_factory=datetime.utcnow)
     synthesis_parameters: SynthesisParameters | None = None

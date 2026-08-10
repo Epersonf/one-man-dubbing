@@ -40,6 +40,7 @@ async def start_training(
     engine_name: str = Form(DEFAULT_CONVERSION_ENGINE),
     epochs: int = Form(200),
     sample_rate: int = Form(40_000),
+    save_every_epoch: int = Form(25),
     use_similarity_index: bool = Form(True),
 ):
     voice_profile = _voice_service.get_voice(voice_name)
@@ -47,10 +48,32 @@ async def start_training(
         return JSONResponse({"error": f"Voice not found: {voice_name}"}, status_code=404)
 
     config = TrainingConfig(
-        epochs=epochs, sample_rate=sample_rate, use_similarity_index=use_similarity_index
+        epochs=epochs,
+        sample_rate=sample_rate,
+        save_every_epoch=save_every_epoch,
+        use_similarity_index=use_similarity_index,
     )
     try:
         model_id = _service.start_training_in_background(voice_profile, config, engine_name)
+    except TrainingInProgressError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=409)
+    return {"status": "started", "voice_name": voice_name, "model_id": model_id}
+
+
+@router.post("/resume")
+async def resume_training(voice_name: str = Form(...), model_id: str = Form(...), epochs: int = Form(...)):
+    voice_profile = _voice_service.get_voice(voice_name)
+    if voice_profile is None:
+        return JSONResponse({"error": f"Voice not found: {voice_name}"}, status_code=404)
+    model = _service.get_model(voice_name, model_id)
+    if model is None:
+        return JSONResponse({"error": f"Model not found: {model_id}"}, status_code=404)
+
+    config = TrainingConfig(
+        epochs=epochs, sample_rate=model.sample_rate, use_similarity_index=model.has_similarity_index
+    )
+    try:
+        _service.resume_training_in_background(voice_profile, model_id, config, model.engine_name)
     except TrainingInProgressError as exc:
         return JSONResponse({"error": str(exc)}, status_code=409)
     return {"status": "started", "voice_name": voice_name, "model_id": model_id}
